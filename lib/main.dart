@@ -30,14 +30,14 @@ class Dock extends StatefulWidget {
 }
 
 class _DockState extends State<Dock> {
-  final List<IconData> _items = [
+  final List<IconData?> _items = [
     Icons.person,
     Icons.message,
     Icons.call,
     Icons.camera,
     Icons.photo,
   ];
-  int _tappedIndex = -1;
+
   IconData? selectedIcon;
 
   @override
@@ -59,60 +59,55 @@ class _DockState extends State<Dock> {
   }
 
   Widget _buildDraggableIcon(int index) {
-    final icon = _items[index];
-
+    final icon = _items.toList()[index];
     return DragTarget<IconData>(
-      onAcceptWithDetails: (data) {},
-      onWillAcceptWithDetails: (data) {
+      onAcceptWithDetails: (data) {
         setState(() {
           _items.removeWhere((e) => e == data.data);
           _items.insert(index, data.data);
         });
+      },
+      onWillAcceptWithDetails: (details) {
+        if (_items.length > 5) {
+          _items.removeWhere((e) => e == null);
+        }
+
+        _items.insert(index, null);
+        setState(() {});
         return true;
       },
       builder: (context, candidateData, rejectedData) {
         return Draggable<IconData>(
           data: icon,
-          feedback: _iconContainer(icon, true),
-          onDragStarted: () {
-            selectedIcon = _items.removeAt(index);
-            _tappedIndex = index;
+          maxSimultaneousDrags: 1,
+          onDragEnd: (details) {
+            _items.removeWhere((e) => e == null);
             setState(() {});
           },
-          onDragCompleted: () {
-            if (_items.length < 5) {
-              _items.insert(_tappedIndex, selectedIcon!);
-              setState(() {});
-            }
-          },
-          onDraggableCanceled: (vel, off) {
-            if (_items.length < 5) {
-              _items.insert(_tappedIndex, selectedIcon!);
-              setState(() {});
-            }
-          },
-          childWhenDragging: _iconContainer(icon, false),
-          child: Container(
-            width: 48,
-            height: 48,
-            constraints: const BoxConstraints(minWidth: 48),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              color: Colors.primaries[icon.hashCode % Colors.primaries.length],
-            ),
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            child: _iconContainer(icon, false),
-          ),
+          feedback: _iconContainer(icon, true, candidateData.isNotEmpty),
+          childWhenDragging: const SizedBox(),
+          child: _iconContainer(icon, false, candidateData.isNotEmpty),
         );
       },
     );
   }
 
-  Widget _iconContainer(IconData icon, bool dragging) {
+  Widget _iconContainer(IconData? icon, bool dragging, bool highlighted) {
+    if (highlighted) {
+      return const SizedBox(
+        width: 48,
+        height: 48,
+      );
+    }
+
+    if (icon == null) {
+      return const SizedBox();
+    }
+
     return Container(
       width: dragging ? 60 : 48,
       height: dragging ? 60 : 48,
-      constraints: const BoxConstraints(minWidth: 48),
+      constraints: const BoxConstraints(minWidth: 45),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
         color: Colors.primaries[icon.hashCode % Colors.primaries.length],
